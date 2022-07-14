@@ -1,9 +1,13 @@
 ---
-title: "[EDA] ALPHA Camp PartI"
+title: "ALPHA Camp 學習體驗斷點分析 Part I"
 author: "Su-Fang Yeh"
 date: "2022/7/3"
-output: html_document
-theme:cerulean
+output: 
+  html_document:
+    theme: flatly
+    toc: yes 
+    toc_depth: 2
+    toc_float: yes 
 ---
 
 ```{r setup, include=FALSE}
@@ -16,12 +20,11 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(knitr)
 
-setwd("H:\\我的雲端硬碟\\0-學習\\資料集 Dataset\\AlphaCamp-SQL-AC 找出影響學習投入的原因")
-
 students=read.csv("table1.students.csv",fileEncoding = 'UTF-8',stringsAsFactors = T)
+
 for (i in 1:nrow(students)){
-  if (students$班級[i] %in% c('7月班','8月班','9月班')){students$class_group[i]="class_Q3"}
-  else{students$class_group[i]="class_Q4"}
+  if (students[i,'班級']%in% c('7月班','8月班','9月班')){students$class_group[i]="class_Q3"}
+  else {students$class_group[i]="class_Q4"}
   }
 
 demographic=read.csv("table2.demographic.csv",fileEncoding = 'UTF-8',stringsAsFactors = T)
@@ -30,16 +33,34 @@ submissions=read_csv('table4.submissions.csv', locale= locale(encoding='UTF-8'))
 assignments=read_csv('table5.assignments.csv', locale= locale(encoding='UTF-8'))
 ```
 
-# Q4 班級具體的落後程度為何？
+# 資料分析：班級學習表現比較
 
-## 作業完成率比較
+## 作業完成率
 
-`nrow(distinct(submissions["student_id"]))` = 2789 -> 有3人沒交作業
+### 檢查有多少人交作業，避免合併資料表後計算錯誤
 
-`filter(temp, is.na(id)==TRUE)` -> 找出沒交作業的人
+- 應繳作業人數：2792
+- 實繳作業人數：2789 -> 有3人沒交作業
+
+
+```{r}
+nrow(distinct(submissions["student_id"]))  
+```
+
+### 合併資料表
+
+合併 students & submissions tables；順便看一下是哪些人沒有交作業
+
+```{r}
+temp=merge(submissions, students[c("id","class_group")], by.x="student_id",by.y="id", all.y=TRUE)
+filter(temp, is.na(id)==TRUE) #-> 找出沒交作業的人
+
+```
+
+### 統計量檢視
 
 ```{r, message=FALSE}
-temp=merge(submissions, students[c("id","class_group")], by.x="student_id",by.y="id", all.y=TRUE)
+
 submission_cal<-temp %>% group_by(class_group,student_id) %>%
   summarise(
     #n_submission=n(),
@@ -63,6 +84,9 @@ class_trend<-submission_cal %>% group_by(class_group) %>%
 kable(class_trend)
 
 ```
+
+### 視覺化檢視
+
 ```{r, message=FALSE}
 bin_w=(max(submission_cal$submission_rate)-min(submission_cal$submission_rate))/(1+log2(length(submission_cal$submission_rate)))
 
@@ -116,6 +140,8 @@ bin_w=(max(submission_cal$submission_rate)-min(submission_cal$submission_rate))/
      labs(y="作業完成率 (%)", x="班次"))
 ```
 
+### 統計檢定
+
 ```{r}
 concat_tb=table(submission_cal$class_group,as.factor(submission_cal$n_submission))
 chisq.test(concat_tb,simulate.p.value = TRUE) 
@@ -124,18 +150,28 @@ chisq.test(concat_tb,simulate.p.value = TRUE)
 
 ## 學習時間
 
-`nrow(distinct(sessions["student_id"]))` -> 每個人都有上線紀錄
+### 檢查有多少人上線
 
-```{r,echo=FALSE, message=FALSE}
+應上線 & 實際上線人數相等 -> 每個人都有上線紀錄
+
+```{r}
+nrow(distinct(sessions["student_id"]))
+```
+
+### 統計量檢視
+
+```{r, message=FALSE}
+colnames(sessions) <- c('id','student_id','time','duration_min')
+
 session_time <-sessions %>% 
   group_by(student_id) %>% summarise(
-    online_t=sum(`學習時間（分鐘）`)/60,
+    online_t=sum(duration_min)/60,
     meet_expect=(online_t>=(45)),
     freq=length(id)
   ) %>% 
   merge(students[c("id","class_group")], by.x="student_id",by.y="id")
 
-(session_cal<-session_time%>%group_by(class_group) %>% summarise(
+session_cal<-session_time%>%group_by(class_group) %>% summarise(
   N=n(),
   Mean=mean(online_t),
   Median=median(online_t),
@@ -143,20 +179,35 @@ session_time <-sessions %>%
   meet_expect_portion=round(meet_expect_N/N,2),
   not_meet_expect_potion=1- meet_expect_portion,
   Mean_hour= (mean(online_t))
-) )
+) 
+
+kable(session_cal)
 
 ```
 
+
+### 視覺化
+
+百分比堆疊直條圖：檢視達到建議最低學習時數的比例多寡
 
 ```{r, message=FALSE}
-session_cal %>% 
-  gather("condition","portion",meet_expect_portion,not_meet_expect_potion)%>%
-  arrange(desc(portion)) %>%
-  ggplot(aes(fill=condition, y=portion, x=class_group))+
-  geom_bar(position="fill", stat="identity")+ 
-  coord_flip()
+temp<- session_cal %>% 
+    gather("condition","portion",meet_expect_portion, not_meet_expect_potion) %>%
+    mutate(
+      condition=factor(condition, levels=c('not_meet_expect_potion','meet_expect_portion'))
+    )
+
+col<-c(not_meet_expect_potion='#4e8782',meet_expect_portion='#69b3a2')
+
+temp%>%
+  ggplot(aes(x=class_group,y=portion, fill=condition))+
+  geom_bar(position="stack", stat="identity")+
+  scale_fill_manual(values=col)#+
+  #coord_flip()
 
 ```
+
+### 統計檢定
 
 ```{r, message=FALSE}
 # 比例檢定
@@ -164,6 +215,15 @@ prop.test(session_cal$meet_expect_N,session_cal$N, alternative="two.sided")
 
 
 ```
+
+
+
+
+### 額外觀察 (後續原因分析可參考)
+
+#### 上線時間分佈
+
+檢視整體上線時間分佈 (虛線為建議學習時間標線)，發現 Q3 雖然達到建議學習時數的人數很多，但是比建議學習時間多 1 倍以上的人也不少，後續可能需要進一步觀察
 
 
 ```{r, message=FALSE}
@@ -198,19 +258,28 @@ grid.arrange(p1, p2, ncol = 2)
 
 ```
 
-## 作業繳交 vs 學習時間
+#### 作業繳交 vs 上線時間
+
+以常理來說，寫的作業越多，應該就會花月多時間，Q3 大致符合這個趨勢，但是 Q4 卻沒有
+
 
 ```{r,echo=FALSE, message=FALSE}
 
 ggplot(cbind(submission_cal,session_time$online_t))+
-  geom_bar(aes(submission_cal$n_submission,mean(session_time$online_t)),stat = "identity")+
-  facet_wrap(~class_group)
+  geom_bar(aes(submission_cal$n_submission,mean(session_time$online_t)),
+           fill="#69b3a2", stat = "identity")+
+  facet_wrap(~class_group)+
+  labs(x='作業繳交數量', y='上線時間')
 
 ```
 
+
+
 ## 學習頻率
 
-總共上線幾次
+### 視覺化
+
+上課期間，每人總上線次數分佈
 
 ```{r,echo=FALSE, message=FALSE}
 
@@ -220,6 +289,9 @@ ggplot(session_time)+
   labs(x="上線次數",y="人次")
 
 ```
+
+### 統計檢定
+
 ```{r}
 # 卡方檢定
 concat_tb=table(session_time$class_group,session_time$freq)
