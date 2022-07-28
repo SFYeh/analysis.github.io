@@ -32,10 +32,17 @@ SELECT Customers.FirstTransactionYear,
 
 - 比例檢定(R語言)：
 ~~~~r
-data=data.frame(New_N=c(8284, 9636), repurchase_N=c(1276,1621))
+data=data.frame(new_customer_cnt=c(8284, 9636), repurchase_customer_cnt=c(1276,1621))
 rownames(data)= c(2021,2022)
-prop.test( data$repurchase_N,data$New_N, alternative="two.sided") 
+prop.test(data$repurchase_customer_cnt, data$new_customer_cnt, alternative="two.sided") 
 ~~~~
 
 ## 新客首購品項區隔
+
+~~~~sql
+~~~~
+
 ## 首購品項 × 通路
+
+~~~~sql
+~~~~
