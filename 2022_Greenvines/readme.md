@@ -2,13 +2,13 @@
 本分析使用 SQLite Online 作為資料庫引擎
 
 ## 新客回購表現確認
+- 新客數計算：
 ~~~~sql
--- 新客數
+
  SELECT firsttransactionyear,
- 		COUNT(customerid) AS `新客數`
+ 		     COUNT(customerid) AS `新客數`
   FROM Customers
-  --WHERE str(firsttransactiondate,6,2) in ('01','02','03')
-  GROUP by firsttransactionyear
+  GROUP BY firsttransactionyear
 ~~~~
 ## 新客首購品項區隔
 ## 首購品項 × 通路
