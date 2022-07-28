@@ -1,11 +1,11 @@
 # 綠藤生機 - 新客回購率提升分析
 
 本分析使用 SQLite Online 作為資料庫引擎，資料庫的 ER Diagram 如下圖所示：
-!() [https://github.com/SFYeh/sfyeh.github.io/blob/main/2022_Greenvines/ER%20Diagram.png]
+![image] (https://github.com/SFYeh/sfyeh.github.io/blob/main/2022_Greenvines/ER%20Diagram.png)
 
 ## 新客回購表現確認
 
-- 資料提取、彙整 ( SQL 語法) 
+- 資料提取、彙整 ( SQL 語法) ：
 ~~~~sql
 
 WITH `repurchase` AS (
@@ -29,7 +29,7 @@ SELECT Customers.FirstTransactionYear,
   GROUP BY firsttransactionyear
 ~~~~
 
-比例檢定(R語言)
+- 比例檢定(R語言)：
 ~~~~r
 data=data.frame(New_N=c(8284, 9636), repurchase_N=c(1276,1621))
 rownames(data)= c(2021,2022)
