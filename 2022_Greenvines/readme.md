@@ -1,6 +1,7 @@
 # 綠藤生機 - 新客回購率提升分析
 
 本分析使用 SQLite Online 作為資料庫引擎，資料庫的 ER Diagram 如下圖所示：
+
 ![image] (https://github.com/SFYeh/sfyeh.github.io/blob/main/2022_Greenvines/ER%20Diagram.png)
 
 ## 新客回購表現確認
