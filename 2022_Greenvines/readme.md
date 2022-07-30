@@ -45,7 +45,7 @@ WITH first_orders AS (
     JOIN Products
       ON OrderDetails.ProductId =Products.ProductId
   ),
-  p_core as ( 
+  p_core AS ( 
    --首購含核心產品
 	SELECT *
   	  FROM first_orders
@@ -135,8 +135,8 @@ WITH first_orders AS (
   
 -- 提取各個 Segment 的新客數、回購數，以只買核心產品為例
 SELECT segment.TransactionYear,
-       COUNT(DISTINCT segment.customerid) as `new_customer_cnt`,
-       COUNT(DISTINCT repurchase.CustomerId) as `repurchase_customer_cnt`
+       COUNT(DISTINCT segment.customerid) AS `new_customer_cnt`,
+       COUNT(DISTINCT repurchase.CustomerId) AS `repurchase_customer_cnt`
   FROM  seg_core_only AS segment   --以只買核心產品 (seg_core_only) 為例
   LEFT JOIN repurchase
     ON  segment.CustomerId=repurchase.CustomerId
