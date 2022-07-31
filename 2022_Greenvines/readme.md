@@ -9,20 +9,20 @@
 - 資料提取、彙整 ( SQL 語法) ：
 ~~~~sql
 
-WITH `repurchase` AS (
+WITH repurchase AS (
   -- 算出每位客戶 2021 年與 2022 年各別有幾個訂單, 篩選出有回購的人
   SELECT customerid,
   	      transactionyear,
-         COUNT(customerid) AS `order_cnt`
-  FROM `Orders`
-  GROUP BY `customerid`,`transactionyear`
-  HAVING `order_cnt`>1
+         COUNT(customerid) AS order_cnt
+  FROM Orders
+  GROUP BY customerid,transactionyear
+  HAVING order_cnt>1
 )
 
 -- 計算 2022 與 2021 年各別的新客數、新客回購數
 SELECT Customers.FirstTransactionYear,
-       COUNT(DISTINCT Customers.CustomerId) as `new_customer_cnt`,
-       COUNT(DISTINCT repurchase.CustomerId) as `repurchase_customer_cnt`
+       COUNT(DISTINCT Customers.CustomerId) AS new_customer_cnt,
+       COUNT(DISTINCT repurchase.CustomerId) AS repurchase_customer_cnt
    FROM Customers
    LEFT JOIN repurchase
      ON Customers.CustomerId=repurchase.CustomerId
