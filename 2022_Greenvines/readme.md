@@ -148,7 +148,7 @@ SELECT segment.TransactionYear,
 
 ## 首購品項 × 通路
 
-基本上只是在首購訂單資料中加入 FirstChannel 欄位，以跟 Channels table 連結 
+基本上跟上一段程式碼雷同，只是在首購訂單資料中加入 FirstChannel 欄位，以跟 Channels table 連結 ；最後在提取資料時加入channels tyoe 欄位
 ~~~~sql
 WITH first_orders AS (
   --首購訂單資料
@@ -250,15 +250,15 @@ WITH first_orders AS (
   HAVING order_cnt>1
   )
 
---  
+-- 提取指頂年份、指定 Segment 的通路類型、交易年份、新客數、回購數，以只買核心產品為例 
 SELECT Channels.ChannelType,
        segment.TransactionYear,
        COUNT(DISTINCT segment.customerid) as `new_customer_cnt`,
        COUNT(DISTINCT repurchase.CustomerId) as `repurchase_customer_cnt`
-  from   seg_core_lead_others as segment  -- seg_可替換成其他 seg
+  FROM   seg_core_only as segment  -- seg_可替換成其他 seg
   LEFT JOIN repurchase
     ON  segment.CustomerId=repurchase.CustomerId
-   and segment.TransactionYear=repurchase.transactionyear
+   AND segment.TransactionYear=repurchase.transactionyear
   LEFT JOIN Channels
     ON Channels.Channel=segment.FirstChannel
  GROUP BY Channels.channelType,segment.TransactionYear
