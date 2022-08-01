@@ -148,5 +148,118 @@ SELECT segment.TransactionYear,
 
 ## 首購品項 × 通路
 
+基本上只是在首購訂單資料中加入 FirstChannel 欄位，以跟 Channels table 連結 
 ~~~~sql
+WITH first_orders AS (
+  --首購訂單資料
+ 	SELECT Customers.CustomerId, Customers.FirstChannel, 
+  		   Orders.OrderId,Orders.TransactionYear, 
+           Products.ProductType
+  	FROM Customers
+  	JOIN Orders
+  	  ON Customers.CustomerId=Orders.CustomerId AND Customers.FirstTransactionDate=Orders.TransactionDate
+  	JOIN OrderDetails
+  	  ON Orders.OrderId=OrderDetails.OrderId
+    JOIN Products
+      ON OrderDetails.ProductId =Products.ProductId
+  ),
+  p_core as ( 
+   --首購含核心產品
+	SELECT *
+  	  FROM first_orders
+      WHERE producttype ="核心產品"),
+  p_lead AS (
+   --首購含帶路產品
+    SELECT *
+  	  FROM first_orders
+      WHERE producttype ="帶路產品"),
+  p_others AS (
+   --首購含其他產品
+    SELECT *
+  	  FROM first_orders
+      WHERE producttype ="其他產品"),
+      
+  seg_core_only AS(
+   --首購只買核心產品的分組
+    SELECT* 
+      FROM p_core
+     WHERE OrderId NOT IN 
+    	(
+         SELECT OrderId FROM p_lead
+         UNION
+         SELECT OrderId FROM p_others
+        )
+  ),
+  seg_lead_only AS(
+   --首購只買帶路產品的分組
+     SELECT* 
+      FROM p_lead
+     WHERE OrderId NOT IN 
+    	(
+         SELECT OrderId FROM p_core
+         UNION
+         SELECT OrderId FROM p_others
+        )
+  ),
+  seg_others_only AS(
+   -- 首購只買其他的分組
+    SELECT* 
+      FROM p_others
+     WHERE OrderId NOT IN 
+    	(
+         SELECT OrderId FROM p_core
+         UNION
+         SELECT OrderId FROM p_lead  --要用 UNION 因為兩者會有重複的部分
+        )
+  ),
+  seg_core_and_lead AS(
+    --首購同時買核心產品與帶路產品的分組
+    SELECT*
+      FROM p_core
+     WHERE OrderId IN (SELECT OrderId FROM p_lead) 
+       AND OrderId NOT IN (SELECT OrderId FROM p_others)
+  ),
+  seg_core_and_others AS(
+    --首購同時買核心產品與其他產品的分組
+    SELECT*
+      FROM p_core
+     WHERE OrderId IN (SELECT OrderId FROM p_others) 
+     AND OrderId NOT IN (SELECT OrderId FROM p_lead)
+  ),
+  seg_lead_and_others AS(
+    --首購同時買帶路產品與其他產品的分組
+    SELECT*
+      FROM p_lead
+     WHERE OrderId IN (SELECT OrderId FROM p_others) 
+     AND OrderId NOT IN (SELECT OrderId FROM p_core)
+  ),   
+  seg_core_lead_others AS(
+   --首購三種產品都購買的分組
+  	SELECT*
+      FROM p_core
+     WHERE OrderId IN (SELECT OrderId FROM p_lead)
+       AND OrderId IN (SELECT OrderId FROM p_others)
+  ),
+  repurchase AS(
+  --算出每位客戶各年份的訂單次數, 篩選出有回購的人
+  SELECT customerid,
+  	   transactionyear,
+       COUNT(customerid) AS `order_cnt`
+  FROM Orders
+  GROUP BY customerid,transactionyear
+  HAVING order_cnt>1
+  )
+
+--  
+SELECT Channels.ChannelType,
+       segment.TransactionYear,
+       COUNT(DISTINCT segment.customerid) as `new_customer_cnt`,
+       COUNT(DISTINCT repurchase.CustomerId) as `repurchase_customer_cnt`
+  from   seg_core_lead_others as segment  -- seg_可替換成其他 seg
+  LEFT JOIN repurchase
+    ON  segment.CustomerId=repurchase.CustomerId
+   and segment.TransactionYear=repurchase.transactionyear
+  LEFT JOIN Channels
+    ON Channels.Channel=segment.FirstChannel
+ GROUP BY Channels.channelType,segment.TransactionYear
 ~~~~
