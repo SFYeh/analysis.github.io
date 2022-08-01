@@ -33,6 +33,7 @@ SELECT Customers.FirstTransactionYear,
 
 ## 新客首購品項區隔
 
+- 資料提取、彙整 ( SQL 語法) ：
 ~~~~sql
 WITH first_orders AS (
   --首購訂單資料
