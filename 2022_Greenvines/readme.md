@@ -148,7 +148,8 @@ SELECT segment.TransactionYear,
 
 ## 首購品項 × 通路
 
-基本上跟上一段程式碼雷同，只是在首購訂單資料中加入 FirstChannel 欄位，以跟 Channels table 連結 ；最後在提取資料時加入channels tyoe 欄位
+- 資料提取、彙整 ( SQL 語法) ：基本上跟上一段程式碼雷同，只是在首購訂單資料中加入 FirstChannel 欄位，以跟 Channels table 連結 ；最後在提取資料時加入channels tyoe 欄位
+
 ~~~~sql
 WITH first_orders AS (
   --首購訂單資料
